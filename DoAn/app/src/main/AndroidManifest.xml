@@ -13,6 +13,15 @@
         android:theme="@style/Theme.TruongTanSang_DH52111660"
         tools:targetApi="31">
         <activity
+            android:name=".ThuNhap"
+            android:exported="false" />
+        <activity
+            android:name=".ChiTieu"
+            android:exported="false" />
+        <activity
+            android:name=".Dashboard"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

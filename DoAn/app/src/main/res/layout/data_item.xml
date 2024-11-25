@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tvSTT"
+        android:layout_width="39dp"
+        android:layout_height="25dp"
+        android:text="STT"
+        android:textSize="18sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvDate"
+        android:layout_width="94dp"
+        android:layout_height="26dp"
+        android:layout_marginTop="1dp"
+        android:text="Date"
+        android:textSize="18sp"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteX="41dp" />
+
+    <TextView
+        android:id="@+id/tvTien"
+        android:layout_width="81dp"
+        android:layout_height="26dp"
+        android:text="So tien"
+        android:textSize="18sp"
+        app:layout_constraintStart_toEndOf="@+id/tvDate"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvDanhMuc"
+        android:layout_width="102dp"
+        android:layout_height="27dp"
+        android:text="Danh muc"
+        android:textSize="18sp"
+        app:layout_constraintStart_toEndOf="@+id/tvTien"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/tvMoTa"
+        android:layout_width="95dp"
+        android:layout_height="25dp"
+        android:layout_marginTop="1dp"
+        android:text="Mo ta"
+        android:textSize="18sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toEndOf="@+id/tvDanhMuc"
+        app:layout_constraintTop_toTopOf="parent" />
+</androidx.constraintlayout.widget.ConstraintLayout>
