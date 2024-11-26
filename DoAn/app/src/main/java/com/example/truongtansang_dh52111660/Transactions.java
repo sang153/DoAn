@@ -5,18 +5,31 @@ import java.sql.Date;
 public class Transactions {
     private int transaction_id;
     private Double amount;
-    private Date date;
+    private String date;
+    private String Category;
     private String description;
     private int category_id;
     private int user_id;
 
+
+
     public Transactions() {
     }
 
-    public Transactions(int transaction_id, Double amount, String description) {
+    public Transactions(int transaction_id, Double amount, String date, String category, String description) {
         this.transaction_id = transaction_id;
         this.amount = amount;
+        this.date = date;
+        Category = category;
         this.description = description;
+    }
+
+    public String getCategory() {
+        return Category;
+    }
+
+    public void setCategory(String category) {
+        Category = category;
     }
 
     public int getTransaction_id() {
@@ -35,11 +48,11 @@ public class Transactions {
         this.amount = amount;
     }
 
-    public Date getDate() {
+    public String getDate() {
         return date;
     }
 
-    public void setDate(Date date) {
+    public void setDate(String date) {
         this.date = date;
     }
 

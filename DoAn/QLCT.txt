@@ -1,0 +1,60 @@
+Phần mềm quản lý chi tiêu(Android Java + SQLite)
+Phần mềm quản lý chi tiêu cá nhân là một công cụ thiết kế để giúp người dùng theo dõi và quản lý tài chính của họ một cách hiệu quả. Mục tiêu chính của phần mềm này là cung cấp cái nhìn tổng quan rõ ràng về thu nhập, chi tiêu, và giúp người dùng lập kế hoạch tài chính cá nhân một cách thông minh. Dưới đây là một mô tả tổng quan về những tính năng và chức năng chính của một phần mềm quản lý chi tiêu cá nhân.
+Chức năng chính
+Đăng nhập/Đăng ký:(1đ)
+●	Đăng ký: Người dùng cung cấp thông tin cơ bản như tên, email, và mật khẩu để tạo tài khoản mới. Có thể bao gồm xác thực email để đảm bảo tính xác thực của thông tin đăng ký.
+●	Đăng nhập: Người dùng đăng nhập vào hệ thống bằng email và mật khẩu đã đăng ký.
+●	Xác thực đa yếu tố (MFA): Tùy chọn này thêm một lớp bảo mật bổ sung, yêu cầu người dùng xác thực danh tính qua SMS, email, hoặc ứng dụng xác thực.
+Giao diện Dashboard:(1đ)
+●	Tổng quan tài chính: Hiển thị số dư hiện tại, tổng thu nhập và tổng chi tiêu trong tháng/tuần/ngày hiện tại.
+●	Biểu đồ và thống kê: Cung cấp biểu đồ tròn, biểu đồ thanh hoặc biểu đồ dòng để theo dõi xu hướng chi tiêu theo thời gian, giúp người dùng dễ dàng nhận thức được mô hình chi tiêu của mình.
+Nhập chi tiêu:(1đ)
+●	Phân loại chi tiêu: Người dùng có thể lựa chọn từ các danh mục sẵn có hoặc tạo danh mục mới để phân loại chi tiêu.
+●	Thông tin chi tiêu: Mỗi giao dịch chi tiêu bao gồm ngày, giờ, số tiền, danh mục và một mô tả ngắn.
+●	Thêm nhanh: Tính năng thêm nhanh cho phép người dùng nhập chi tiêu một cách nhanh chóng và thuận tiện.
+Nhập thu nhập:(1đ)
+●	Phân loại thu nhập: Tương tự như chi tiêu, người dùng có thể phân loại thu nhập theo các nguồn như lương, đầu tư, hoặc khác.
+●	Thông tin thu nhập: Ngày, giờ, số tiền, nguồn thu, và mô tả cụ thể cho từng khoản thu nhập.
+Quản lý danh mục:(1đ)
+●	Tùy chỉnh danh mục: Cho phép người dùng tùy chỉnh danh mục chi tiêu và thu nhập, bao gồm thêm mới, chỉnh sửa tên và xóa danh mục không còn sử dụng.
+Cơ sở dữ liệu tổng quát( có thể phát sinh thêm khi làm)
+Bảng Users
+Lưu trữ thông tin cơ bản của người dùng.
+●	user_id (PRIMARY KEY, AUTO_INCREMENT): Định danh duy nhất cho mỗi người dùng.
+●	username: Tên người dùng.
+●	email: Địa chỉ email.
+●	password_hash: Mật khẩu đã được mã hóa.
+●	created_at: Ngày tạo tài khoản.
+●	last_login: Ngày đăng nhập cuối.
+Bảng Categories
+Lưu trữ các danh mục chi tiêu và thu nhập.
+●	category_id (PRIMARY KEY, AUTO_INCREMENT): Định danh duy nhất cho mỗi danh mục.
+●	name: Tên danh mục.
+●	type: Loại danh mục (chi tiêu hoặc thu nhập).
+●	user_id (FOREIGN KEY): Liên kết với bảng Users để chỉ định danh mục thuộc về người dùng nào.
+Bảng Transactions
+Lưu trữ thông tin chi tiết về các giao dịch chi tiêu và thu nhập.
+●	transaction_id (PRIMARY KEY, AUTO_INCREMENT): Định danh duy nhất cho mỗi giao dịch.
+●	amount: Số tiền của giao dịch.
+●	date: Ngày thực hiện giao dịch.
+●	description: Mô tả giao dịch.
+●	category_id (FOREIGN KEY): Liên kết với bảng Categories để xác định giao dịch thuộc danh mục nào.
+●	user_id (FOREIGN KEY): Người dùng thực hiện giao dịch.
+Bảng Budgets
+Lưu trữ thông tin về ngân sách người dùng đặt cho từng danh mục.
+●	budget_id (PRIMARY KEY, AUTO_INCREMENT): Định danh duy nhất cho mỗi ngân sách.
+●	category_id (FOREIGN KEY): Danh mục mà ngân sách được áp dụng.
+●	amount: Số tiền dành cho ngân sách.
+●	start_date: Ngày bắt đầu ngân sách.
+●	end_date: Ngày kết thúc ngân sách.
+●	user_id (FOREIGN KEY): Người dùng thiết lập ngân sách.
+Bảng Notifications
+Lưu trữ các thông báo cho người dùng về các sự kiện quan trọng (như chi tiêu quá mức, nhắc nhở thanh toán).
+●	notification_id (PRIMARY KEY, AUTO_INCREMENT): Định danh duy nhất cho mỗi thông báo.
+●	user_id (FOREIGN KEY): Người dùng nhận thông báo.
+●	message: Nội dung thông báo.
+●	date: Ngày gửi thông báo.
+●	status: Trạng thái của thông báo (đã đọc/chưa đọc).
+Các bảng này cung cấp cơ sở dữ liệu vững chắc để xử lý và lưu
+
+

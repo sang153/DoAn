@@ -22,10 +22,14 @@
             android:exported="false" />
         <activity
             android:name=".ThuNhap"
-            android:exported="false" />
+            android:exported="false" 
+            android:windowSoftInputMode="adjustPan">
+        </activity>
         <activity
             android:name=".ChiTieu"
-            android:exported="false" />
+            android:exported="false"
+            android:windowSoftInputMode="adjustPan">
+        </activity>
         <activity
             android:name=".Dashboard"
             android:exported="false" />

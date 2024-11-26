@@ -17,6 +17,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText txtEmail, txtPassword;
     private SQLiteDatabase db;
     private users user;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -38,9 +39,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View view) {
                 String email = txtEmail.getText().toString();
                 String pwd = txtPassword.getText().toString();
-                if(accountChecking(email, pwd)){
-                    Intent myItent = new Intent(MainActivity.this, Dashboard.class);
-                    startActivity(myItent);
+                if (accountChecking(email, pwd)) {
+                    Intent myIntent = new Intent(MainActivity.this, Dashboard.class);
+                    myIntent.putExtra("USER_ID", user.getUser_id());
+                    myIntent.putExtra("USERNAME", user.getUsername());
+                    startActivity(myIntent);
                 }
             }
         });
@@ -48,7 +51,8 @@ public class MainActivity extends AppCompatActivity {
         btnRegister = findViewById(R.id.btnDangKy);
         btnRegister.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, Register.class)));
     }
-    private void initDatabase(){
+
+    private void initDatabase() {
         db = openOrCreateDatabase("database.db", MODE_PRIVATE, null);
         String sqlUsers = "CREATE TABLE IF NOT EXISTS \"Users\" (\n" +
                 "\t\"user_id\"\tINTEGER,\n" +
@@ -75,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
                 "\t\"end_date\"\tTEXT,\n" +
                 "\t\"user_id\"\tINTEGER,\n" +
                 "\tPRIMARY KEY(\"budget_id\" AUTOINCREMENT),\n" +
-                "\tCONSTRAINT \"FK_budget_categories\" FOREIGN KEY(\"category_id\") REFERENCES \"Categories\"(\"category_id\"),\n" +
+                "\tCONSTRAINT \"FK_budget_categories\" FOREIGN KEY(\"category_id\") REFERENCES \"Categories\"(\"category_id\"),\n"
+                +
                 "\tCONSTRAINT \"FK_budget_user\" FOREIGN KEY(\"user_id\") REFERENCES \"Users\"(\"user_id\")\n" +
                 ")";
         String sqlTrans = "CREATE TABLE IF NOT EXISTS \"Transactions\" (\n" +
@@ -86,7 +91,8 @@ public class MainActivity extends AppCompatActivity {
                 "\t\"category_id\"\tINTEGER,\n" +
                 "\t\"user_id\"\tINTEGER,\n" +
                 "\tPRIMARY KEY(\"transaction_id\" AUTOINCREMENT),\n" +
-                "\tCONSTRAINT \"FK_trans_categories\" FOREIGN KEY(\"category_id\") REFERENCES \"Categories\"(\"category_id\"),\n" +
+                "\tCONSTRAINT \"FK_trans_categories\" FOREIGN KEY(\"category_id\") REFERENCES \"Categories\"(\"category_id\"),\n"
+                +
                 "\tCONSTRAINT \"FK_trans_user\" FOREIGN KEY(\"user_id\") REFERENCES \"Users\"(\"user_id\")\n" +
                 ")";
         String sqlNotifications = "CREATE TABLE IF NOT EXISTS \"Notifications\" (\n" +
@@ -105,8 +111,9 @@ public class MainActivity extends AppCompatActivity {
         db.execSQL(sqlNotifications);
 
     }
-    private boolean accountChecking(String mail, String pwd){
-        String sql = "SELECT * FROM Users WHERE (email ='" + mail + "') and ( password_hash='" + pwd + "')" ;
+
+    private boolean accountChecking(String mail, String pwd) {
+        String sql = "SELECT * FROM Users WHERE (email ='" + mail + "') and ( password_hash='" + pwd + "')";
         Cursor cursor = db.rawQuery(sql, null);
 
         if (cursor.moveToFirst()) {
@@ -116,13 +123,14 @@ public class MainActivity extends AppCompatActivity {
             String password_hash = cursor.getString(3);
             String created_at = cursor.getString(4);
             String last_login = cursor.getString(5);
-            user = new users(user_id,username,email,password_hash,created_at,last_login);
+            user = new users(user_id, username, email, password_hash, created_at, last_login);
             return true;
         }
         cursor.close();
         return false;
     }
-    private void addData(){
+
+    private void addData() {
         String sql = "INSERT INTO Users (username, email, password_hash) VALUES ('Sang Truong', 'sangtruong123@gmail.com', '123456')";
         db.execSQL(sql);
     }
