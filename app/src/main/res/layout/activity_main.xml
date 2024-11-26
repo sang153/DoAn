@@ -9,74 +9,76 @@
 
     <EditText
         android:id="@+id/txtEmail"
-        android:layout_width="235dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="104dp"
-        android:layout_marginTop="32dp"
-        android:ems="10"
-        android:inputType="textEmailAddress"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-        android:id="@+id/lblEmail"
-        android:layout_width="wrap_content"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="44dp"
-        android:text="@string/email"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="100dp"
+        android:background="@drawable/edit_text_background"
+        android:padding="12dp"
+        android:hint="Email"
+        android:inputType="textEmailAddress"
+        android:drawableStart="@drawable/ic_email"
+        android:drawablePadding="8dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"    />
 
     <EditText
         android:id="@+id/txtPassword"
-        android:layout_width="234dp"
-        android:layout_height="48dp"
-        android:layout_marginStart="104dp"
-        android:layout_marginTop="104dp"
-        android:ems="10"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/edit_text_background"
+        android:padding="12dp"
+        android:hint="Mật khẩu"
         android:inputType="textPassword"
+        android:drawableStart="@drawable/ic_lock"
+        android:drawablePadding="8dp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/txtEmail" />
 
-    <TextView
-        android:id="@+id/lblPassword"
-        android:layout_width="wrap_content"
+    <LinearLayout       
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:layout_marginTop="120dp"
-        android:text="@string/password"
+        android:layout_marginHorizontal="24dp"
+        android:layout_marginTop="32dp"
+        android:orientation="horizontal"
+        android:weightSum="2"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/txtPassword">
 
-    <Button
-        android:id="@+id/btnDangKy"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="104dp"
-        android:layout_marginTop="228dp"
-        android:text="Đăng ký"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <Button
+            android:id="@+id/btnDangKy"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Đăng ký"
+            android:backgroundTint="@color/colorPrimary"/>
 
-    <Button
-        android:id="@+id/btnDangNhap"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="220dp"
-        android:layout_marginTop="228dp"
-        android:text="Đăng nhập"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        <Button
+            android:id="@+id/btnDangNhap"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Đăng nhập"
+            android:backgroundTint="@color/colorAccent"/>
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/txtLoginError"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="180dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="212dp"
+        android:text="Email hoặc mật khẩu không chính xác!"
         android:textColor="#FF0000"
         android:visibility="invisible"
-        android:text="Email hoặc mật khẩu không chính xác!"
         app:layout_constraintStart_toStartOf="@+id/txtPassword"
         app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>
