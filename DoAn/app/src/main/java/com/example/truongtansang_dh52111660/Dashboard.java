@@ -11,6 +11,8 @@ import android.widget.Toast;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.RadioGroup;
+import android.widget.RadioButton;
 
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
@@ -23,8 +25,16 @@ import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.utils.ColorTemplate;
 import java.util.ArrayList;
 import com.github.mikephil.charting.formatter.PercentFormatter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 
 public class Dashboard extends AppCompatActivity {
+    private RadioGroup timeFilterGroup;
+    private static final int FILTER_DAY = 1;
+    private static final int FILTER_WEEK = 2;
+    private static final int FILTER_MONTH = 3;
+    private int currentFilter = FILTER_DAY;
+
     private PieChart pieChart;
     private SQLiteDatabase db;
     private int userId;
@@ -57,8 +67,30 @@ public class Dashboard extends AppCompatActivity {
         valTotal = findViewById(R.id.valTotal);
         valTongChiTieu = findViewById(R.id.valTongChiTieu);
 
+        timeFilterGroup = findViewById(R.id.timeFilterGroup);
+        timeFilterGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(RadioGroup group, int checkedId) {
+                Log.d("Dashboard", "Radio button changed: " + checkedId); // Debug log
+
+                if (checkedId == R.id.radioDay) {
+                    currentFilter = FILTER_DAY;
+                    Log.d("Dashboard", "Selected: Day"); // Debug log
+                } else if (checkedId == R.id.radioWeek) {
+                    currentFilter = FILTER_WEEK;
+                    Log.d("Dashboard", "Selected: Week"); // Debug log
+                } else if (checkedId == R.id.radioMonth) {
+                    currentFilter = FILTER_MONTH;
+                    Log.d("Dashboard", "Selected: Month"); // Debug log
+                }
+
+                // Load data based on new filter
+                loadFinancialData();
+            }
+        });
+
+        initializeViews();
         loadFinancialData();
-        setupPieChart();
 
         // Xử lý sự kiện click button Chi tiêu
         Button btnChiTieu = findViewById(R.id.btnNhapChiTieu);
@@ -83,44 +115,126 @@ public class Dashboard extends AppCompatActivity {
         });
     }
 
+    private void initializeViews() {
+        // Initialize other views
+        pieChart = findViewById(R.id.pieChart);
+        valSoDu = findViewById(R.id.valSoDu);
+        valTotal = findViewById(R.id.valTotal);
+        valTongChiTieu = findViewById(R.id.valTongChiTieu);
+
+        // Ensure radioDay is checked by default
+        RadioButton radioDay = findViewById(R.id.radioDay);
+        radioDay.setChecked(true);
+    }
+
     private void loadFinancialData() {
         try {
-            // Tính tổng thu nhập
-            String incomeQuery = "SELECT SUM(amount) FROM Transactions " +
-                    "WHERE user_id = ? AND category_id IN " +
-                    "(SELECT category_id FROM Categories WHERE type = 'TN' AND user_id = ?)";
-            Cursor incomeCursor = db.rawQuery(incomeQuery,
-                    new String[] { String.valueOf(userId), String.valueOf(userId) });
+            String incomeQuery;
+            String expenseQuery;
+            String[] queryParams;
 
-            // Tính tổng chi tiêu
-            String expenseQuery = "SELECT SUM(amount) FROM Transactions " +
-                    "WHERE user_id = ? AND category_id IN " +
-                    "(SELECT category_id FROM Categories WHERE type = 'CT' AND user_id = ?)";
-            Cursor expenseCursor = db.rawQuery(expenseQuery,
-                    new String[] { String.valueOf(userId), String.valueOf(userId) });
+            // Lấy ngày hiện tại
+            Calendar calendar = Calendar.getInstance();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            String currentDate = dateFormat.format(calendar.getTime());
 
+            // Tạo câu query dựa trên filter
+            switch (currentFilter) {
+                case FILTER_DAY:
+                    // Query cho ngày hiện tại
+                    incomeQuery = "SELECT SUM(amount) FROM Transactions " +
+                            "WHERE user_id = ? AND date = ? AND category_id IN " +
+                            "(SELECT category_id FROM Categories WHERE type = 'TN' AND user_id = ?)";
+                    expenseQuery = "SELECT SUM(amount) FROM Transactions " +
+                            "WHERE user_id = ? AND date = ? AND category_id IN " +
+                            "(SELECT category_id FROM Categories WHERE type = 'CT' AND user_id = ?)";
+                    queryParams = new String[] { String.valueOf(userId), currentDate, String.valueOf(userId) };
+                    break;
+
+                case FILTER_WEEK:
+                    // Query cho tuần hiện tại
+                    calendar.add(Calendar.DAY_OF_YEAR, -7);
+                    String weekAgo = dateFormat.format(calendar.getTime());
+                    incomeQuery = "SELECT SUM(amount) FROM Transactions " +
+                            "WHERE user_id = ? AND date BETWEEN ? AND ? AND category_id IN " +
+                            "(SELECT category_id FROM Categories WHERE type = 'TN' AND user_id = ?)";
+                    expenseQuery = "SELECT SUM(amount) FROM Transactions " +
+                            "WHERE user_id = ? AND date BETWEEN ? AND ? AND category_id IN " +
+                            "(SELECT category_id FROM Categories WHERE type = 'CT' AND user_id = ?)";
+                    queryParams = new String[] { String.valueOf(userId), weekAgo, currentDate, String.valueOf(userId) };
+                    break;
+
+                case FILTER_MONTH:
+                    // Query cho tháng hiện tại
+                    calendar = Calendar.getInstance();
+                    String yearMonth = new SimpleDateFormat("yyyy-MM").format(calendar.getTime());
+                    incomeQuery = "SELECT SUM(amount) FROM Transactions " +
+                            "WHERE user_id = ? AND strftime('%Y-%m', date) = ? AND category_id IN " +
+                            "(SELECT category_id FROM Categories WHERE type = 'TN' AND user_id = ?)";
+                    expenseQuery = "SELECT SUM(amount) FROM Transactions " +
+                            "WHERE user_id = ? AND strftime('%Y-%m', date) = ? AND category_id IN " +
+                            "(SELECT category_id FROM Categories WHERE type = 'CT' AND user_id = ?)";
+                    queryParams = new String[] { String.valueOf(userId), yearMonth, String.valueOf(userId) };
+                    break;
+
+                default:
+                    return;
+            }
+
+            // Thực hiện query thu nhập
+            Cursor incomeCursor = db.rawQuery(incomeQuery, queryParams);
             double income = 0;
-            double expense = 0;
-
             if (incomeCursor.moveToFirst()) {
                 income = incomeCursor.getDouble(0);
             }
+            incomeCursor.close();
+
+            // Thực hiện query chi tiêu
+            Cursor expenseCursor = db.rawQuery(expenseQuery, queryParams);
+            double expense = 0;
             if (expenseCursor.moveToFirst()) {
                 expense = expenseCursor.getDouble(0);
             }
-
-            incomeCursor.close();
             expenseCursor.close();
 
-            // Sửa từ updateChart thành updatePieChart
+            // Cập nhật biểu đồ và thông tin
             updatePieChart(income, expense);
-
-            // Cập nhật TextView hiển thị số liệu
             updateFinancialInfo(income, expense);
+
+            // Cập nhật tiêu đề thời gian
+            String timeRange = getTimeRangeTitle();
+            updateTimeRangeTitle(timeRange);
 
         } catch (Exception e) {
             Log.e("Dashboard", "Error loading financial data", e);
             Toast.makeText(this, "Không thể tải dữ liệu tài chính", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String getTimeRangeTitle() {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+        SimpleDateFormat monthFormat = new SimpleDateFormat("MM/yyyy");
+
+        switch (currentFilter) {
+            case FILTER_DAY:
+                return "Ngày " + dateFormat.format(calendar.getTime());
+            case FILTER_WEEK:
+                Calendar weekAgo = Calendar.getInstance();
+                weekAgo.add(Calendar.DAY_OF_YEAR, -7);
+                return "Tuần " + dateFormat.format(weekAgo.getTime()) + " - " + dateFormat.format(calendar.getTime());
+            case FILTER_MONTH:
+                return "Tháng " + monthFormat.format(calendar.getTime());
+            default:
+                return "";
+        }
+    }
+
+    private void updateTimeRangeTitle(String timeRange) {
+        // Thêm TextView để hiển thị khoảng thời gian
+        TextView timeRangeView = findViewById(R.id.timeRangeTitle);
+        if (timeRangeView != null) {
+            timeRangeView.setText(timeRange);
         }
     }
 
