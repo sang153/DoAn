@@ -20,7 +20,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-        android:id="@+id/ediMota"
+        android:id="@+id/editMoTa"
         android:layout_width="186dp"
         android:layout_height="56dp"
         android:layout_marginStart="39dp"
@@ -55,8 +55,8 @@
 
     <ListView
         android:id="@+id/lvChiTieu"
-        android:layout_width="425dp"
-        android:layout_height="481dp"
+        android:layout_width="413dp"
+        android:layout_height="478dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -84,6 +84,6 @@
         android:inputType="date"
         android:hint="Date"
         app:layout_constraintStart_toEndOf="@+id/editGiaTien"
-        app:layout_constraintTop_toBottomOf="@+id/ediMota" />
+        app:layout_constraintTop_toBottomOf="@+id/editMoTa" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

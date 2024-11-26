@@ -8,6 +8,15 @@ public class users {
     private String created_at;
     private String last_login;
 
+    public users(int user_id, String username, String email, String password_hash, String created_at, String last_login) {
+        this.user_id = user_id;
+        this.username = username;
+        this.email = email;
+        this.password_hash = password_hash;
+        this.created_at = created_at;
+        this.last_login = last_login;
+    }
+
     public int getUser_id() {
         return user_id;
     }

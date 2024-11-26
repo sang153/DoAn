@@ -7,8 +7,11 @@ public class Transactions {
     private Double amount;
     private Date date;
     private String description;
-    pirvate int ccategory_id;
+    private int category_id;
     private int user_id;
+
+    public Transactions() {
+    }
 
     public Transactions(int transaction_id, Double amount, String description) {
         this.transaction_id = transaction_id;
@@ -48,12 +51,12 @@ public class Transactions {
         this.description = description;
     }
 
-    public int getCcategory_id() {
-        return ccategory_id;
+    public int getCategory_id() {
+        return category_id;
     }
 
-    public void setCcategory_id(int ccategory_id) {
-        this.ccategory_id = ccategory_id;
+    public void setCategory_id(int category_id) {
+        this.category_id = category_id;
     }
 
     public int getUser_id() {
