@@ -40,4 +40,7 @@ dependencies {
     // reCAPTCHA
     implementation("com.google.android.gms:play-services-safetynet:18.0.1")
     implementation("com.google.android.gms:play-services-auth:20.7.0")
+
+    // Pie chart
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 }

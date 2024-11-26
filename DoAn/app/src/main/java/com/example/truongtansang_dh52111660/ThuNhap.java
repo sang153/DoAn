@@ -193,8 +193,7 @@ public class ThuNhap extends AppCompatActivity {
                     @Override
                     public void onDateSet(DatePicker view, int year,
                             int monthOfYear, int dayOfMonth) {
-                        String selectedDate = String.format("%04d-%02d-%02d",
-                                year, monthOfYear + 1, dayOfMonth);
+                        String selectedDate = String.format("%04d-%02d-%02d", year, monthOfYear + 1, dayOfMonth);
                         editTextDate.setText(selectedDate);
                     }
                 }, year, month, day);

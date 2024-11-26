@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 
 import com.google.firebase.FirebaseApp;
 
@@ -17,6 +18,7 @@ public class MainActivity extends AppCompatActivity {
     private EditText txtEmail, txtPassword;
     private SQLiteDatabase db;
     private users user;
+    private TextView txtLoginError;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +28,7 @@ public class MainActivity extends AppCompatActivity {
         initDatabase();
         txtEmail = findViewById(R.id.txtEmail);
         txtPassword = findViewById(R.id.txtPassword);
+        txtLoginError = findViewById(R.id.txtLoginError);
 
         // Khởi tạo Firebase
         try {
@@ -37,13 +40,29 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.btnDangNhap).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String email = txtEmail.getText().toString();
-                String pwd = txtPassword.getText().toString();
-                if (accountChecking(email, pwd)) {
-                    Intent myIntent = new Intent(MainActivity.this, Dashboard.class);
-                    myIntent.putExtra("USER_ID", user.getUser_id());
-                    myIntent.putExtra("USERNAME", user.getUsername());
-                    startActivity(myIntent);
+                try {
+                    String email = txtEmail.getText().toString();
+                    String pwd = txtPassword.getText().toString();
+
+                    if (email.isEmpty() || pwd.isEmpty()) {
+                        txtLoginError.setText("Vui lòng nhập đầy đủ thông tin!");
+                        txtLoginError.setVisibility(View.VISIBLE);
+                        return;
+                    }
+
+                    if (accountChecking(email, pwd)) {
+                        Intent myIntent = new Intent(MainActivity.this, Dashboard.class);
+                        myIntent.putExtra("USER_ID", user.getUser_id());
+                        myIntent.putExtra("USERNAME", user.getUsername());
+                        startActivity(myIntent);
+                    } else {
+                        txtLoginError.setText("Email hoặc mật khẩu không chính xác!");
+                        txtLoginError.setVisibility(View.VISIBLE);
+                    }
+                } catch (Exception e) {
+                    Log.e("MainActivity", "Error in login", e);
+                    txtLoginError.setText("Có lỗi xảy ra, vui lòng thử lại!");
+                    txtLoginError.setVisibility(View.VISIBLE);
                 }
             }
         });
@@ -110,24 +129,38 @@ public class MainActivity extends AppCompatActivity {
         db.execSQL(sqlTrans);
         db.execSQL(sqlNotifications);
 
+        // Thêm tài khoản test
+        try {
+            db.execSQL(
+                    "INSERT OR IGNORE INTO Users (username, email, password_hash) VALUES ('Test User', 'test@example.com', '123456')");
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error adding test account", e);
+        }
     }
 
     private boolean accountChecking(String mail, String pwd) {
-        String sql = "SELECT * FROM Users WHERE (email ='" + mail + "') and ( password_hash='" + pwd + "')";
-        Cursor cursor = db.rawQuery(sql, null);
+        try {
+            // Sử dụng tham số hoá để tránh SQL injection
+            String sql = "SELECT * FROM Users WHERE email = ? AND password_hash = ?";
+            Cursor cursor = db.rawQuery(sql, new String[] { mail, pwd });
 
-        if (cursor.moveToFirst()) {
-            int user_id = cursor.getInt(0);
-            String username = cursor.getString(1);
-            String email = cursor.getString(2);
-            String password_hash = cursor.getString(3);
-            String created_at = cursor.getString(4);
-            String last_login = cursor.getString(5);
-            user = new users(user_id, username, email, password_hash, created_at, last_login);
-            return true;
+            if (cursor.moveToFirst()) {
+                int user_id = cursor.getInt(0);
+                String username = cursor.getString(1);
+                String email = cursor.getString(2);
+                String password_hash = cursor.getString(3);
+                String created_at = cursor.getString(4);
+                String last_login = cursor.getString(5);
+                user = new users(user_id, username, email, password_hash, created_at, last_login);
+                cursor.close();
+                return true;
+            }
+            cursor.close();
+            return false;
+        } catch (Exception e) {
+            Log.e("MainActivity", "Error checking account", e);
+            return false;
         }
-        cursor.close();
-        return false;
     }
 
     private void addData() {
