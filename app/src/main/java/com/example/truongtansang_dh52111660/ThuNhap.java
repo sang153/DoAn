@@ -123,7 +123,7 @@ public class ThuNhap extends AppCompatActivity {
                 String category = cursor.getString(3);
                 String description = cursor.getString(4);
 
-                Transactions tran = new Transactions(transaction_id, amount,date,  category, description);
+                Transactions tran = new Transactions(transaction_id, amount, date, category, description);
                 ls.add(tran);
             } while (cursor.moveToNext());
         }
@@ -145,8 +145,9 @@ public class ThuNhap extends AppCompatActivity {
             double sotien = Double.parseDouble(editGia.getText().toString());
 
             // Kiểm tra xem danh mục đã tồn tại chưa
-            String checkCategory = "SELECT category_id FROM Categories WHERE name = ? AND type = 'TN'";
-            Cursor cursor = db.rawQuery(checkCategory, new String[] { danhmuc });
+            String checkCategory = "SELECT category_id FROM Categories WHERE name = ? AND type = ? AND user_id = ?";
+
+            Cursor cursor = db.rawQuery(checkCategory, new String[] { danhmuc, "TN", String.valueOf(userId) });
 
             long categoryId;
 

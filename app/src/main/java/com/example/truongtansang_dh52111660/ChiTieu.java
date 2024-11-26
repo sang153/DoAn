@@ -142,8 +142,8 @@ public class ChiTieu extends AppCompatActivity {
             double sotien = Double.parseDouble(editGia.getText().toString());
 
             // Kiểm tra xem danh mục đã tồn tại chưa
-            String checkCategory = "SELECT category_id FROM Categories WHERE name = ? AND type = 'CT'";
-            Cursor cursor = db.rawQuery(checkCategory, new String[] { danhmuc });
+            String checkCategory = "SELECT category_id FROM Categories WHERE name = ? AND type = ? AND user_id = ?";
+            Cursor cursor = db.rawQuery(checkCategory, new String[] { danhmuc, "CT", String.valueOf(userId) });
 
             long categoryId;
 

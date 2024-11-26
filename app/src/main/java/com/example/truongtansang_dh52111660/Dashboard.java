@@ -8,15 +8,7 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
-import android.widget.RadioGroup;
-import android.widget.RadioButton;
-
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.PieData;
@@ -28,8 +20,15 @@ import com.github.mikephil.charting.formatter.PercentFormatter;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.chip.Chip;
+
+import com.github.mikephil.charting.components.Legend;
+
+import java.util.Arrays;
+
 public class Dashboard extends AppCompatActivity {
-    private RadioGroup timeFilterGroup;
+    private ChipGroup timeFilterGroup;
     private static final int FILTER_DAY = 1;
     private static final int FILTER_WEEK = 2;
     private static final int FILTER_MONTH = 3;
@@ -40,191 +39,213 @@ public class Dashboard extends AppCompatActivity {
     private int userId;
     private TextView valSoDu, valTotal, valTongChiTieu;
 
+    // Thêm constant cho format ngày
+    private static final String DATE_FORMAT = "yyyy-MM-dd";
+    private static final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+
+    private static final String TRANSACTION_TYPE_INCOME = "TN";
+    private static final String TRANSACTION_TYPE_EXPENSE = "CT";
+
+    private static final String BASE_QUERY = "SELECT COALESCE(SUM(amount), 0) FROM Transactions " +
+            "WHERE user_id = ? AND %s AND category_id IN " +
+            "(SELECT category_id FROM Categories WHERE type = ? AND user_id = ?)";
+
+    private static final String DATE_CONDITION = "date = ?";
+    private static final String DATE_RANGE_CONDITION = "date BETWEEN ? AND ?";
+    private static final String MONTH_CONDITION = "strftime('%Y-%m', date) = strftime('%Y-%m', ?)";
+
+    private static final SimpleDateFormat SQL_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat DISPLAY_DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
+    private static final SimpleDateFormat MONTH_FORMAT = new SimpleDateFormat("MM/yyyy");
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
-        // Khởi tạo database trước khi sử dụng
         db = openOrCreateDatabase("database.db", MODE_PRIVATE, null);
-
-        // Lấy userId từ Intent
         userId = getIntent().getIntExtra("USER_ID", -1);
+
         if (userId == -1) {
             Toast.makeText(this, "Có lỗi xảy ra!", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
-
-        pieChart = findViewById(R.id.pieChart);
-        valSoDu = findViewById(R.id.valSoDu);
-        valTotal = findViewById(R.id.valTotal);
-        valTongChiTieu = findViewById(R.id.valTongChiTieu);
-
-        timeFilterGroup = findViewById(R.id.timeFilterGroup);
-        timeFilterGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup group, int checkedId) {
-                Log.d("Dashboard", "Radio button changed: " + checkedId); // Debug log
-
-                if (checkedId == R.id.radioDay) {
-                    currentFilter = FILTER_DAY;
-                    Log.d("Dashboard", "Selected: Day"); // Debug log
-                } else if (checkedId == R.id.radioWeek) {
-                    currentFilter = FILTER_WEEK;
-                    Log.d("Dashboard", "Selected: Week"); // Debug log
-                } else if (checkedId == R.id.radioMonth) {
-                    currentFilter = FILTER_MONTH;
-                    Log.d("Dashboard", "Selected: Month"); // Debug log
-                }
-
-                // Load data based on new filter
-                loadFinancialData();
-            }
-        });
-
         initializeViews();
+        setupTimeFilter();
         loadFinancialData();
+    }
 
-        // Xử lý sự kiện click button Chi tiêu
-        Button btnChiTieu = findViewById(R.id.btnNhapChiTieu);
-        btnChiTieu.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Dashboard.this, ChiTieu.class);
-                intent.putExtra("USER_ID", userId);
-                startActivity(intent);
-            }
-        });
-
-        // Xử lý sự kiện click button Thu nhập
-        Button btnThuNhap = findViewById(R.id.btnNhapThuNhap);
-        btnThuNhap.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Dashboard.this, ThuNhap.class);
-                intent.putExtra("USER_ID", userId);
-                startActivity(intent);
-            }
-        });
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (db == null || !db.isOpen()) {
+            db = openOrCreateDatabase("database.db", MODE_PRIVATE, null);
+        }
+        loadFinancialData();
     }
 
     private void initializeViews() {
-        // Initialize other views
         pieChart = findViewById(R.id.pieChart);
         valSoDu = findViewById(R.id.valSoDu);
         valTotal = findViewById(R.id.valTotal);
         valTongChiTieu = findViewById(R.id.valTongChiTieu);
+        timeFilterGroup = findViewById(R.id.timeFilterGroup);
 
-        // Ensure radioDay is checked by default
-        RadioButton radioDay = findViewById(R.id.radioDay);
-        radioDay.setChecked(true);
+        setupPieChart();
+        setupButtons();
+
+        // Đảm bảo Chip ngày được chọn mặc định
+        Chip chipDay = findViewById(R.id.radioDay);
+        chipDay.setChecked(true);
+    }
+
+    private void setupTimeFilter() {
+        timeFilterGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.radioDay)
+                currentFilter = FILTER_DAY;
+            else if (checkedId == R.id.radioWeek)
+                currentFilter = FILTER_WEEK;
+            else if (checkedId == R.id.radioMonth)
+                currentFilter = FILTER_MONTH;
+            loadFinancialData();
+        });
+    }
+
+    private void setupButtons() {
+        findViewById(R.id.btnNhapChiTieu).setOnClickListener(v -> {
+            Intent intent = new Intent(Dashboard.this, ChiTieu.class);
+            intent.putExtra("USER_ID", userId);
+            startActivity(intent);
+        });
+
+        findViewById(R.id.btnNhapThuNhap).setOnClickListener(v -> {
+            Intent intent = new Intent(Dashboard.this, ThuNhap.class);
+            intent.putExtra("USER_ID", userId);
+            startActivity(intent);
+        });
     }
 
     private void loadFinancialData() {
         try {
-            String incomeQuery;
-            String expenseQuery;
-            String[] queryParams;
+            if (userId <= 0 || db == null || !db.isOpen()) {
+                Log.e("Dashboard", "Invalid state in loadFinancialData");
+                return;
+            }
 
-            // Lấy ngày hiện tại
+            // Thêm log để kiểm tra
+            Log.d("Dashboard", "Loading financial data...");
+
+            String condition;
+            String[] baseParams;
             Calendar calendar = Calendar.getInstance();
-            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            String currentDate = dateFormat.format(calendar.getTime());
 
-            // Tạo câu query dựa trên filter
             switch (currentFilter) {
                 case FILTER_DAY:
-                    // Query cho ngày hiện tại
-                    incomeQuery = "SELECT SUM(amount) FROM Transactions " +
-                            "WHERE user_id = ? AND date = ? AND category_id IN " +
-                            "(SELECT category_id FROM Categories WHERE type = 'TN' AND user_id = ?)";
-                    expenseQuery = "SELECT SUM(amount) FROM Transactions " +
-                            "WHERE user_id = ? AND date = ? AND category_id IN " +
-                            "(SELECT category_id FROM Categories WHERE type = 'CT' AND user_id = ?)";
-                    queryParams = new String[] { String.valueOf(userId), currentDate, String.valueOf(userId) };
+                    condition = DATE_CONDITION;
+                    baseParams = new String[] { SQL_DATE_FORMAT.format(calendar.getTime()) };
                     break;
-
                 case FILTER_WEEK:
-                    // Query cho tuần hiện tại
-                    calendar.add(Calendar.DAY_OF_YEAR, -7);
-                    String weekAgo = dateFormat.format(calendar.getTime());
-                    incomeQuery = "SELECT SUM(amount) FROM Transactions " +
-                            "WHERE user_id = ? AND date BETWEEN ? AND ? AND category_id IN " +
-                            "(SELECT category_id FROM Categories WHERE type = 'TN' AND user_id = ?)";
-                    expenseQuery = "SELECT SUM(amount) FROM Transactions " +
-                            "WHERE user_id = ? AND date BETWEEN ? AND ? AND category_id IN " +
-                            "(SELECT category_id FROM Categories WHERE type = 'CT' AND user_id = ?)";
-                    queryParams = new String[] { String.valueOf(userId), weekAgo, currentDate, String.valueOf(userId) };
+                    Calendar weekAgo = Calendar.getInstance();
+                    weekAgo.add(Calendar.DAY_OF_YEAR, -7);
+                    condition = DATE_RANGE_CONDITION;
+                    baseParams = new String[] {
+                            SQL_DATE_FORMAT.format(weekAgo.getTime()),
+                            SQL_DATE_FORMAT.format(calendar.getTime())
+                    };
+                    Log.d("Dashboard", "Week filter: " + Arrays.toString(baseParams));
                     break;
-
                 case FILTER_MONTH:
-                    // Query cho tháng hiện tại
-                    calendar = Calendar.getInstance();
-                    String yearMonth = new SimpleDateFormat("yyyy-MM").format(calendar.getTime());
-                    incomeQuery = "SELECT SUM(amount) FROM Transactions " +
-                            "WHERE user_id = ? AND strftime('%Y-%m', date) = ? AND category_id IN " +
-                            "(SELECT category_id FROM Categories WHERE type = 'TN' AND user_id = ?)";
-                    expenseQuery = "SELECT SUM(amount) FROM Transactions " +
-                            "WHERE user_id = ? AND strftime('%Y-%m', date) = ? AND category_id IN " +
-                            "(SELECT category_id FROM Categories WHERE type = 'CT' AND user_id = ?)";
-                    queryParams = new String[] { String.valueOf(userId), yearMonth, String.valueOf(userId) };
+                    condition = MONTH_CONDITION;
+                    baseParams = new String[] { SQL_DATE_FORMAT.format(calendar.getTime()) };
+                    Log.d("Dashboard", "Month filter params: " + Arrays.toString(baseParams));
                     break;
-
                 default:
                     return;
             }
 
-            // Thực hiện query thu nhập
-            Cursor incomeCursor = db.rawQuery(incomeQuery, queryParams);
-            double income = 0;
-            if (incomeCursor.moveToFirst()) {
-                income = incomeCursor.getDouble(0);
-            }
-            incomeCursor.close();
+            String query = String.format(BASE_QUERY, condition);
 
-            // Thực hiện query chi tiêu
-            Cursor expenseCursor = db.rawQuery(expenseQuery, queryParams);
-            double expense = 0;
-            if (expenseCursor.moveToFirst()) {
-                expense = expenseCursor.getDouble(0);
-            }
-            expenseCursor.close();
+            // Thêm type vào params
+            String[] incomeParams = createQueryParams(baseParams, TRANSACTION_TYPE_INCOME);
+            String[] expenseParams = createQueryParams(baseParams, TRANSACTION_TYPE_EXPENSE);
 
-            // Cập nhật biểu đồ và thông tin
-            updatePieChart(income, expense);
-            updateFinancialInfo(income, expense);
+            // Thực hiện truy vấn
+            double income = executeQuery(query, incomeParams);
+            double expense = executeQuery(query, expenseParams);
 
-            // Cập nhật tiêu đề thời gian
-            String timeRange = getTimeRangeTitle();
-            updateTimeRangeTitle(timeRange);
+            // Thêm log kết quả
+            Log.d("Dashboard", String.format("Loaded data - Income: %f, Expense: %f", income, expense));
 
+            updateUI(income, expense);
         } catch (Exception e) {
-            Log.e("Dashboard", "Error loading financial data", e);
-            Toast.makeText(this, "Không thể tải dữ liệu tài chính", Toast.LENGTH_SHORT).show();
+            handleError(e);
         }
+    }
+
+    private String[] createQueryParams(String[] baseParams, String type) {
+        String[] params = new String[baseParams.length + 3];
+        params[0] = String.valueOf(userId);
+        System.arraycopy(baseParams, 0, params, 1, baseParams.length);
+        params[params.length - 2] = type;
+        params[params.length - 1] = String.valueOf(userId);
+        return params;
+    }
+
+    private double executeQuery(String query, String[] params) {
+        double result = 0;
+        try (Cursor cursor = db.rawQuery(query, params)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                result = cursor.getDouble(0);
+                Log.d("Dashboard", String.format("Query executed - Type: %s, Amount: %.2f",
+                        params[params.length - 2], result));
+            } else {
+                Log.w("Dashboard", "No results found for query");
+            }
+        } catch (Exception e) {
+            Log.e("Dashboard", "Query error: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private void updateUI(double income, double expense) {
+        runOnUiThread(() -> {
+            try {
+                Log.d("Dashboard", String.format("Updating UI - Income: %.2f, Expense: %.2f",
+                        income, expense));
+                updatePieChart(income, expense);
+                updateFinancialInfo(income, expense);
+                updateTimeRangeTitle(getTimeRangeTitle());
+            } catch (Exception e) {
+                Log.e("Dashboard", "Error updating UI", e);
+                handleError(e);
+            }
+        });
+    }
+
+    private void handleError(Exception e) {
+        Log.e("Dashboard", "Error loading financial data", e);
+        e.printStackTrace();
+        Toast.makeText(this, "Không thể tải dữ liệu tài chính", Toast.LENGTH_SHORT).show();
     }
 
     private String getTimeRangeTitle() {
         Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        SimpleDateFormat monthFormat = new SimpleDateFormat("MM/yyyy");
+        SimpleDateFormat displayFormat = new SimpleDateFormat("dd/MM/yyyy");
 
         switch (currentFilter) {
             case FILTER_DAY:
-                return "Ngày " + dateFormat.format(calendar.getTime());
+                return "Ngày " + displayFormat.format(calendar.getTime());
             case FILTER_WEEK:
                 Calendar weekAgo = Calendar.getInstance();
                 weekAgo.add(Calendar.DAY_OF_YEAR, -7);
-                return "Tuần " + dateFormat.format(weekAgo.getTime()) + " - " + dateFormat.format(calendar.getTime());
+                return String.format("Tuần %s - %s",
+                        displayFormat.format(weekAgo.getTime()),
+                        displayFormat.format(calendar.getTime()));
             case FILTER_MONTH:
-                return "Tháng " + monthFormat.format(calendar.getTime());
+                return "Tháng " + new SimpleDateFormat("MM/yyyy").format(calendar.getTime());
             default:
                 return "";
         }
@@ -246,14 +267,33 @@ public class Dashboard extends AppCompatActivity {
         pieChart.setCenterText("Thống kê\ntài chính");
         pieChart.setCenterTextSize(16);
         pieChart.getDescription().setEnabled(false);
+
+        // Thêm các thiết lập mới
+        pieChart.setDrawEntryLabels(true);
+        pieChart.setHoleRadius(50f);
+        pieChart.setTransparentCircleRadius(55f);
+        pieChart.setRotationEnabled(true);
+        pieChart.setHighlightPerTapEnabled(true);
+
+        // Legend settings
+        Legend legend = pieChart.getLegend();
+        legend.setEnabled(true);
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+        legend.setOrientation(Legend.LegendOrientation.VERTICAL);
     }
 
     private void updatePieChart(double income, double expense) {
         ArrayList<PieEntry> entries = new ArrayList<>();
-        if (income > 0)
+
+        // Thêm dữ liệu vào entries
+        if (income > 0 || expense > 0) { // Chỉ hiển thị khi có dữ liệu
             entries.add(new PieEntry((float) income, "Thu nhập"));
-        if (expense > 0)
             entries.add(new PieEntry((float) expense, "Chi tiêu"));
+        } else {
+            // Thêm dữ liệu mặc định nếu không có giao dịch
+            entries.add(new PieEntry(1, "Chưa có giao dịch"));
+        }
 
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
@@ -265,14 +305,25 @@ public class Dashboard extends AppCompatActivity {
         data.setValueFormatter(new PercentFormatter(pieChart));
 
         pieChart.setData(data);
-        pieChart.invalidate(); // refresh
+        pieChart.invalidate();
         pieChart.animateY(1000);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // Cập nhật dữ liệu khi quay lại màn hình
+        if (userId <= 0) {
+            Log.e("Dashboard", "Invalid user ID");
+            finish();
+            return;
+        }
+
+        // Đảm bảo database được mở
+        if (db == null || !db.isOpen()) {
+            db = openOrCreateDatabase("database.db", MODE_PRIVATE, null);
+        }
+
+        // Tải lại dữ liệu
         loadFinancialData();
     }
 
@@ -292,4 +343,13 @@ public class Dashboard extends AppCompatActivity {
         valTotal.setText(String.format("%,.0f VNĐ", income));
         valTongChiTieu.setText(String.format("%,.0f VNĐ", expense));
     }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if (db != null && db.isOpen()) {
+            db.close();
+        }
+    }
+
 }
