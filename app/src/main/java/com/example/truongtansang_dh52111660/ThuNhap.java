@@ -59,6 +59,7 @@ public class ThuNhap extends AppCompatActivity {
         editTextDate = findViewById(R.id.editTextDate);
 
         lvThuNhap = findViewById(R.id.lvTN);
+        ls = new ArrayList<>();
         adapter = new ArrayAdapter<Transactions>(this, android.R.layout.simple_list_item_1, ls) {
             @Override
             public View getView(int position, View convertView, ViewGroup parent) {
