@@ -25,14 +25,15 @@ import android.widget.AdapterView;
 import android.app.AlertDialog;
 
 public class ChiTieu extends AppCompatActivity {
-    private int userId;
-    private SQLiteDatabase db;
-    private EditText editDanhMuc, editMoTa, editGia, editTextDate;
-    private Button btnAdd, btnBack;
-    private ListView lvChiTieu;
-    private TextView tvSTT, tvDate, tvTien, tvDanhMuc, tvMoTa;
-    private ArrayAdapter<Transactions> adapter;
-    private ArrayList<Transactions> ls = new ArrayList<Transactions>();
+    // Khai báo các biến toàn cục
+    private int userId; // ID của người dùng hiện tại
+    private SQLiteDatabase db; // Đối tượng database
+    private EditText editDanhMuc, editMoTa, editGia, editTextDate; // Các trường nhập liệu
+    private Button btnAdd, btnBack; // Các nút chức năng
+    private ListView lvChiTieu; // ListView hiển thị danh sách chi tiêu
+    private TextView tvSTT, tvDate, tvTien, tvDanhMuc, tvMoTa; // Các TextView trong item ListView
+    private ArrayAdapter<Transactions> adapter; // Adapter cho ListView
+    private ArrayList<Transactions> ls = new ArrayList<Transactions>(); // Danh sách chi tiêu
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +65,7 @@ public class ChiTieu extends AppCompatActivity {
 
                 Transactions transaction = getItem(position);
                 if (transaction != null) {
-                    tvSTT.setText(String.valueOf(position+1));
+                    tvSTT.setText(String.valueOf(position + 1));
                     tvTien.setText(String.valueOf(transaction.getAmount()));
                     tvMoTa.setText(transaction.getDescription());
                     tvDanhMuc.setText(transaction.getCategory());
@@ -133,6 +134,7 @@ public class ChiTieu extends AppCompatActivity {
         loadData();
     }
 
+    // Hàm load dữ liệu từ database
     private void loadData() {
         ls.clear();
         String sql = "SELECT t.transaction_id, t.date, t.amount, c.name, t.description " +
@@ -158,6 +160,7 @@ public class ChiTieu extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
+    // Hàm thêm chi tiêu mới
     private void addData() {
         String danhmuc = editDanhMuc.getText().toString().trim();
         String mota = editMoTa.getText().toString().trim();
@@ -213,6 +216,7 @@ public class ChiTieu extends AppCompatActivity {
         }
     }
 
+    // Hàm hiển thị dialog chọn ngày
     private void showDatePickerDialog() {
         final Calendar c = Calendar.getInstance();
         int year = c.get(Calendar.YEAR);
@@ -232,6 +236,7 @@ public class ChiTieu extends AppCompatActivity {
         datePickerDialog.show();
     }
 
+    // Hàm cập nhật chi tiêu
     private void updateData(int transactionId) {
         String danhmuc = editDanhMuc.getText().toString().trim();
         String mota = editMoTa.getText().toString().trim();
@@ -301,6 +306,7 @@ public class ChiTieu extends AppCompatActivity {
         }
     }
 
+    // Hàm xóa chi tiêu
     private void deleteData(int transactionId) {
         // Xóa dữ liệu trong cơ sở dữ liệu
         String deleteSql = "DELETE FROM Transactions WHERE transaction_id = ?";

@@ -27,36 +27,46 @@ import com.github.mikephil.charting.components.Legend;
 
 import java.util.Arrays;
 
+/**
+ * Dashboard Activity - Màn hình chính hiển thị tổng quan tài chính
+ * Hiển thị biểu đồ, số dư, thu nhập và chi tiêu theo các khoảng thời gian
+ */
 public class Dashboard extends AppCompatActivity {
-    private ChipGroup timeFilterGroup;
+    // Constants cho bộ lọc thời gian
     private static final int FILTER_DAY = 1;
     private static final int FILTER_WEEK = 2;
     private static final int FILTER_MONTH = 3;
     private int currentFilter = FILTER_DAY;
 
+    // UI Components
+    private ChipGroup timeFilterGroup;
     private PieChart pieChart;
-    private SQLiteDatabase db;
-    private int userId;
     private TextView valSoDu, valTotal, valTongChiTieu;
 
-    // Thêm constant cho format ngày
+    // Database và user info
+    private SQLiteDatabase db;
+    private int userId;
+
+    // Constants cho định dạng ngày tháng
     private static final String DATE_FORMAT = "yyyy-MM-dd";
     private static final SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_FORMAT);
+    private static final SimpleDateFormat SQL_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final SimpleDateFormat DISPLAY_DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
+    private static final SimpleDateFormat MONTH_FORMAT = new SimpleDateFormat("MM/yyyy");
 
+    // Constants cho loại giao dịch
     private static final String TRANSACTION_TYPE_INCOME = "TN";
     private static final String TRANSACTION_TYPE_EXPENSE = "CT";
 
+    // Các câu truy vấn SQL cơ bản
     private static final String BASE_QUERY = "SELECT COALESCE(SUM(amount), 0) FROM Transactions " +
             "WHERE user_id = ? AND %s AND category_id IN " +
             "(SELECT category_id FROM Categories WHERE type = ? AND user_id = ?)";
 
+    // Điều kiện lọc theo thời gian
     private static final String DATE_CONDITION = "date = ?";
     private static final String DATE_RANGE_CONDITION = "date BETWEEN ? AND ?";
     private static final String MONTH_CONDITION = "strftime('%Y-%m', date) = strftime('%Y-%m', ?)";
-
-    private static final SimpleDateFormat SQL_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
-    private static final SimpleDateFormat DISPLAY_DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
-    private static final SimpleDateFormat MONTH_FORMAT = new SimpleDateFormat("MM/yyyy");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,23 +96,32 @@ public class Dashboard extends AppCompatActivity {
         loadFinancialData();
     }
 
+    /**
+     * Khởi tạo các thành phần UI và thiết lập ban đầu
+     */
     private void initializeViews() {
+        // Khởi tạo các view từ layout
         pieChart = findViewById(R.id.pieChart);
         valSoDu = findViewById(R.id.valSoDu);
         valTotal = findViewById(R.id.valTotal);
         valTongChiTieu = findViewById(R.id.valTongChiTieu);
         timeFilterGroup = findViewById(R.id.timeFilterGroup);
 
+        // Thiết lập các thành phần
         setupPieChart();
         setupButtons();
 
-        // Đảm bảo Chip ngày được chọn mặc định
+        // Thiết lập filter mặc định
         Chip chipDay = findViewById(R.id.radioDay);
         chipDay.setChecked(true);
     }
 
+    /**
+     * Thiết lập bộ lọc thời gian
+     */
     private void setupTimeFilter() {
         timeFilterGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            // Cập nhật filter dựa trên selection
             if (checkedId == R.id.radioDay)
                 currentFilter = FILTER_DAY;
             else if (checkedId == R.id.radioWeek)
@@ -113,13 +132,18 @@ public class Dashboard extends AppCompatActivity {
         });
     }
 
+    /**
+     * Thiết lập các nút chức năng
+     */
     private void setupButtons() {
+        // Button thêm chi tiêu
         findViewById(R.id.btnNhapChiTieu).setOnClickListener(v -> {
             Intent intent = new Intent(Dashboard.this, ChiTieu.class);
             intent.putExtra("USER_ID", userId);
             startActivity(intent);
         });
 
+        // Button thêm thu nhập
         findViewById(R.id.btnNhapThuNhap).setOnClickListener(v -> {
             Intent intent = new Intent(Dashboard.this, ThuNhap.class);
             intent.putExtra("USER_ID", userId);
@@ -127,20 +151,23 @@ public class Dashboard extends AppCompatActivity {
         });
     }
 
+    /**
+     * Tải dữ liệu tài chính theo filter đã chọn
+     */
     private void loadFinancialData() {
         try {
+            // Kiểm tra điều kiện
             if (userId <= 0 || db == null || !db.isOpen()) {
                 Log.e("Dashboard", "Invalid state in loadFinancialData");
                 return;
             }
 
-            // Thêm log để kiểm tra
-            Log.d("Dashboard", "Loading financial data...");
-
+            // Xác định điều kiện truy vấn theo filter
             String condition;
             String[] baseParams;
             Calendar calendar = Calendar.getInstance();
 
+            // Thiết lập params theo loại filter
             switch (currentFilter) {
                 case FILTER_DAY:
                     condition = DATE_CONDITION;
@@ -165,22 +192,116 @@ public class Dashboard extends AppCompatActivity {
                     return;
             }
 
+            // Thực hiện truy vấn và cập nhật UI
             String query = String.format(BASE_QUERY, condition);
-
-            // Thêm type vào params
             String[] incomeParams = createQueryParams(baseParams, TRANSACTION_TYPE_INCOME);
             String[] expenseParams = createQueryParams(baseParams, TRANSACTION_TYPE_EXPENSE);
 
-            // Thực hiện truy vấn
             double income = executeQuery(query, incomeParams);
             double expense = executeQuery(query, expenseParams);
-
-            // Thêm log kết quả
-            Log.d("Dashboard", String.format("Loaded data - Income: %f, Expense: %f", income, expense));
 
             updateUI(income, expense);
         } catch (Exception e) {
             handleError(e);
+        }
+    }
+
+    /**
+     * Thiết lập biểu đồ tròn
+     */
+    private void setupPieChart() {
+        // Cấu hình cơ bản
+        pieChart.setDrawHoleEnabled(true);
+        pieChart.setUsePercentValues(true);
+        pieChart.setEntryLabelTextSize(12);
+        pieChart.setEntryLabelColor(Color.BLACK);
+        pieChart.setCenterText("Thống kê\ntài chính");
+        pieChart.setCenterTextSize(16);
+        pieChart.getDescription().setEnabled(false);
+
+        // Cấu hình nâng cao
+        pieChart.setDrawEntryLabels(true);
+        pieChart.setHoleRadius(50f);
+        pieChart.setTransparentCircleRadius(55f);
+        pieChart.setRotationEnabled(true);
+        pieChart.setHighlightPerTapEnabled(true);
+
+        // Thiết lập chú thích
+        Legend legend = pieChart.getLegend();
+        legend.setEnabled(true);
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+        legend.setOrientation(Legend.LegendOrientation.VERTICAL);
+    }
+
+    /**
+     * Cập nhật dữ liệu biểu đồ
+     * 
+     * @param income  Tổng thu nhập
+     * @param expense Tổng chi tiêu
+     */
+    private void updatePieChart(double income, double expense) {
+        ArrayList<PieEntry> entries = new ArrayList<>();
+
+        // Thêm dữ liệu vào biểu đồ
+        if (income > 0 || expense > 0) {
+            entries.add(new PieEntry((float) income, "Thu nhập"));
+            entries.add(new PieEntry((float) expense, "Chi tiêu"));
+        } else {
+            entries.add(new PieEntry(1, "Chưa có giao dịch"));
+        }
+
+        // Thiết lập và cập nhật dữ liệu
+        PieDataSet dataSet = new PieDataSet(entries, "");
+        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
+        dataSet.setSliceSpace(3f);
+        dataSet.setSelectionShift(5f);
+
+        PieData data = new PieData(dataSet);
+        data.setValueTextSize(15f);
+        data.setValueFormatter(new PercentFormatter(pieChart));
+
+        pieChart.setData(data);
+        pieChart.invalidate();
+        pieChart.animateY(1000);
+    }
+
+    /**
+     * Cập nhật thông tin tài chính trên UI
+     * 
+     * @param income  Tổng thu nhập
+     * @param expense Tổng chi tiêu
+     */
+    private void updateFinancialInfo(double income, double expense) {
+        double balance = income - expense;
+        valSoDu.setText(String.format("%,.0f VNĐ", balance));
+        valTotal.setText(String.format("%,.0f VNĐ", income));
+        valTongChiTieu.setText(String.format("%,.0f VNĐ", expense));
+    }
+
+    // Lifecycle methods
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Kiểm tra và tải lại dữ liệu khi activity được resume
+        if (userId <= 0) {
+            Log.e("Dashboard", "Invalid user ID");
+            finish();
+            return;
+        }
+
+        if (db == null || !db.isOpen()) {
+            db = openOrCreateDatabase("database.db", MODE_PRIVATE, null);
+        }
+
+        loadFinancialData();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (db != null) {
+            db.close();
         }
     }
 
@@ -259,94 +380,10 @@ public class Dashboard extends AppCompatActivity {
         }
     }
 
-    private void setupPieChart() {
-        pieChart.setDrawHoleEnabled(true);
-        pieChart.setUsePercentValues(true);
-        pieChart.setEntryLabelTextSize(12);
-        pieChart.setEntryLabelColor(Color.BLACK);
-        pieChart.setCenterText("Thống kê\ntài chính");
-        pieChart.setCenterTextSize(16);
-        pieChart.getDescription().setEnabled(false);
-
-        // Thêm các thiết lập mới
-        pieChart.setDrawEntryLabels(true);
-        pieChart.setHoleRadius(50f);
-        pieChart.setTransparentCircleRadius(55f);
-        pieChart.setRotationEnabled(true);
-        pieChart.setHighlightPerTapEnabled(true);
-
-        // Legend settings
-        Legend legend = pieChart.getLegend();
-        legend.setEnabled(true);
-        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
-        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
-        legend.setOrientation(Legend.LegendOrientation.VERTICAL);
-    }
-
-    private void updatePieChart(double income, double expense) {
-        ArrayList<PieEntry> entries = new ArrayList<>();
-
-        // Thêm dữ liệu vào entries
-        if (income > 0 || expense > 0) { // Chỉ hiển thị khi có dữ liệu
-            entries.add(new PieEntry((float) income, "Thu nhập"));
-            entries.add(new PieEntry((float) expense, "Chi tiêu"));
-        } else {
-            // Thêm dữ liệu mặc định nếu không có giao dịch
-            entries.add(new PieEntry(1, "Chưa có giao dịch"));
-        }
-
-        PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(ColorTemplate.MATERIAL_COLORS);
-        dataSet.setSliceSpace(3f);
-        dataSet.setSelectionShift(5f);
-
-        PieData data = new PieData(dataSet);
-        data.setValueTextSize(15f);
-        data.setValueFormatter(new PercentFormatter(pieChart));
-
-        pieChart.setData(data);
-        pieChart.invalidate();
-        pieChart.animateY(1000);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (userId <= 0) {
-            Log.e("Dashboard", "Invalid user ID");
-            finish();
-            return;
-        }
-
-        // Đảm bảo database được mở
-        if (db == null || !db.isOpen()) {
-            db = openOrCreateDatabase("database.db", MODE_PRIVATE, null);
-        }
-
-        // Tải lại dữ liệu
-        loadFinancialData();
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (db != null) {
-            db.close();
-        }
-    }
-
-    private void updateFinancialInfo(double income, double expense) {
-        double balance = income - expense;
-
-        // Cập nhật các TextView
-        valSoDu.setText(String.format("%,.0f VNĐ", balance));
-        valTotal.setText(String.format("%,.0f VNĐ", income));
-        valTongChiTieu.setText(String.format("%,.0f VNĐ", expense));
-    }
-
     @Override
     protected void onStop() {
         super.onStop();
+        // Đóng database khi activity dừng
         if (db != null && db.isOpen()) {
             db.close();
         }

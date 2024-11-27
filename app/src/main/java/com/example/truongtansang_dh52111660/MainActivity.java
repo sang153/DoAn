@@ -13,7 +13,12 @@ import android.widget.TextView;
 
 import com.google.firebase.FirebaseApp;
 
+/**
+ * MainActivity - Màn hình đăng nhập chính của ứng dụng
+ * Xử lý việc đăng nhập người dùng và khởi tạo cơ sở dữ liệu
+ */
 public class MainActivity extends AppCompatActivity {
+    // Khai báo các thành phần UI và biến toàn cục
     private Button btnRegister;
     private EditText txtEmail, txtPassword;
     private SQLiteDatabase db;
@@ -25,31 +30,36 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // Khởi tạo cơ sở dữ liệu và các thành phần UI
         initDatabase();
         txtEmail = findViewById(R.id.txtEmail);
         txtPassword = findViewById(R.id.txtPassword);
         txtLoginError = findViewById(R.id.txtLoginError);
 
-        // Khởi tạo Firebase
+        // Khởi tạo Firebase cho các tính năng phụ thuộc
         try {
             FirebaseApp.initializeApp(getApplicationContext());
         } catch (Exception e) {
             Log.e("MainActivity", "Firebase initialization failed", e);
         }
 
+        // Xử lý sự kiện click nút đăng nhập
         findViewById(R.id.btnDangNhap).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 try {
+                    // Lấy thông tin đăng nhập từ form
                     String email = txtEmail.getText().toString();
                     String pwd = txtPassword.getText().toString();
 
+                    // Kiểm tra dữ liệu đầu vào
                     if (email.isEmpty() || pwd.isEmpty()) {
                         txtLoginError.setText("Vui lòng nhập đầy đủ thông tin!");
                         txtLoginError.setVisibility(View.VISIBLE);
                         return;
                     }
 
+                    // Kiểm tra tài khoản và chuyển hướng nếu thành công
                     if (accountChecking(email, pwd)) {
                         Intent myIntent = new Intent(MainActivity.this, Dashboard.class);
                         myIntent.putExtra("USER_ID", user.getUser_id());
@@ -67,12 +77,20 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Xử lý sự kiện click nút đăng ký
         btnRegister = findViewById(R.id.btnDangKy);
         btnRegister.setOnClickListener(v -> startActivity(new Intent(MainActivity.this, Register.class)));
     }
 
+    /**
+     * Khởi tạo cơ sở dữ liệu SQLite và tạo các bảng cần thiết
+     * Bao gồm: Users, Categories, Budgets, Transactions, Notifications
+     */
     private void initDatabase() {
+        // Tạo hoặc mở database
         db = openOrCreateDatabase("database.db", MODE_PRIVATE, null);
+
+        // Tạo bảng Users
         String sqlUsers = "CREATE TABLE IF NOT EXISTS \"Users\" (\n" +
                 "\t\"user_id\"\tINTEGER,\n" +
                 "\t\"username\"\tTEXT,\n" +
@@ -82,6 +100,8 @@ public class MainActivity extends AppCompatActivity {
                 "\t\"last_login\"\tTEXT,\n" +
                 "\tPRIMARY KEY(\"user_id\" AUTOINCREMENT)\n" +
                 ")";
+
+        // Tạo bảng Categories
         String sqlCategories = "CREATE TABLE IF NOT EXISTS \"Categories\" (\n" +
                 "\t\"category_id\"\tINTEGER,\n" +
                 "\t\"name\"\tTEXT,\n" +
@@ -90,6 +110,8 @@ public class MainActivity extends AppCompatActivity {
                 "\tPRIMARY KEY(\"category_id\" AUTOINCREMENT),\n" +
                 "\tCONSTRAINT \"FK_user_id\" FOREIGN KEY(\"user_id\") REFERENCES \"Users\"(\"user_id\")\n" +
                 ")";
+
+        // Tạo bảng Budgets
         String sqlBudgets = "CREATE TABLE IF NOT EXISTS \"Budgets\" (\n" +
                 "\t\"budget_id\"\tINTEGER,\n" +
                 "\t\"category_id\"\tINTEGER,\n" +
@@ -102,6 +124,8 @@ public class MainActivity extends AppCompatActivity {
                 +
                 "\tCONSTRAINT \"FK_budget_user\" FOREIGN KEY(\"user_id\") REFERENCES \"Users\"(\"user_id\")\n" +
                 ")";
+
+        // Tạo bảng Transactions
         String sqlTrans = "CREATE TABLE IF NOT EXISTS \"Transactions\" (\n" +
                 "\t\"transaction_id\"\tINTEGER,\n" +
                 "\t\"amount\"\tREAL,\n" +
@@ -114,6 +138,8 @@ public class MainActivity extends AppCompatActivity {
                 +
                 "\tCONSTRAINT \"FK_trans_user\" FOREIGN KEY(\"user_id\") REFERENCES \"Users\"(\"user_id\")\n" +
                 ")";
+
+        // Tạo bảng Notifications
         String sqlNotifications = "CREATE TABLE IF NOT EXISTS \"Notifications\" (\n" +
                 "\t\"notification_id\"\tINTEGER,\n" +
                 "\t\"user_id\"\tINTEGER,\n" +
@@ -123,28 +149,31 @@ public class MainActivity extends AppCompatActivity {
                 "\tPRIMARY KEY(\"notification_id\" AUTOINCREMENT),\n" +
                 "\tCONSTRAINT \"FK_Notification_user\" FOREIGN KEY(\"user_id\") REFERENCES \"Users\"(\"user_id\")\n" +
                 ")";
+
+        // Thực thi các câu lệnh tạo bảng
         db.execSQL(sqlUsers);
         db.execSQL(sqlCategories);
         db.execSQL(sqlBudgets);
         db.execSQL(sqlTrans);
         db.execSQL(sqlNotifications);
-
-        // Thêm tài khoản test
-        try {
-            db.execSQL(
-                    "INSERT OR IGNORE INTO Users (username, email, password_hash) VALUES ('Test User', 'test@example.com', '123456')");
-        } catch (Exception e) {
-            Log.e("MainActivity", "Error adding test account", e);
-        }
     }
 
+    /**
+     * Kiểm tra thông tin đăng nhập của người dùng
+     * 
+     * @param mail Email người dùng
+     * @param pwd  Mật khẩu người dùng
+     * @return true nếu thông tin đăng nhập chính xác, false nếu không
+     */
     private boolean accountChecking(String mail, String pwd) {
         try {
-            // Sử dụng tham số hoá để tránh SQL injection
+            // Truy vấn kiểm tra thông tin đăng nhập
             String sql = "SELECT * FROM Users WHERE email = ? AND password_hash = ?";
             Cursor cursor = db.rawQuery(sql, new String[] { mail, pwd });
 
+            // Xử lý kết quả truy vấn
             if (cursor.moveToFirst()) {
+                // Lấy thông tin người dùng nếu đăng nhập thành công
                 int user_id = cursor.getInt(0);
                 String username = cursor.getString(1);
                 String email = cursor.getString(2);
@@ -161,10 +190,5 @@ public class MainActivity extends AppCompatActivity {
             Log.e("MainActivity", "Error checking account", e);
             return false;
         }
-    }
-
-    private void addData() {
-        String sql = "INSERT INTO Users (username, email, password_hash) VALUES ('Sang Truong', 'sangtruong123@gmail.com', '123456')";
-        db.execSQL(sql);
     }
 }

@@ -25,15 +25,21 @@ import android.content.Context;
 import android.app.AlertDialog;
 import android.widget.AdapterView;
 
+// Class quản lý chức năng thu nhập của ứng dụng
 public class ThuNhap extends AppCompatActivity {
-    private int userId;
-    private SQLiteDatabase db;
-    private EditText editDanhMuc, editMoTa, editGia, editTextDate;
-    private Button btnAdd, btnBack;
-    private ListView lvThuNhap;
-    private TextView tvSTT, tvDate, tvTien, tvDanhMuc, tvMoTa;
-    private ArrayAdapter<Transactions> adapter;
-    private ArrayList<Transactions> ls = new ArrayList<Transactions>();
+    // Khai báo các biến thành viên
+    private int userId; // ID của người dùng hiện tại
+    private SQLiteDatabase db; // Database instance
+    private EditText editDanhMuc; // Trường nhập danh mục thu nhập
+    private EditText editMoTa; // Trường nhập mô tả
+    private EditText editGia; // Trường nhập số tiền
+    private EditText editTextDate; // Trường nhập ngày
+    private Button btnAdd; // Nút thêm/sửa thu nhập
+    private Button btnBack; // Nút quay lại
+    private ListView lvThuNhap; // ListView hiển thị danh sách thu nhập
+    private TextView tvSTT, tvDate, tvTien, tvDanhMuc, tvMoTa; // Các TextView hiển thị thông tin
+    private ArrayAdapter<Transactions> adapter; // Adapter cho ListView
+    private ArrayList<Transactions> ls; // Danh sách các giao dịch thu nhập
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +73,7 @@ public class ThuNhap extends AppCompatActivity {
 
                 Transactions transaction = getItem(position);
                 if (transaction != null) {
-                    tvSTT.setText(String.valueOf(position+1));
+                    tvSTT.setText(String.valueOf(position + 1));
                     tvDate.setText(transaction.getDate());
                     tvTien.setText(String.valueOf(transaction.getAmount()));
                     tvDanhMuc.setText(transaction.getCategory());
@@ -136,13 +142,17 @@ public class ThuNhap extends AppCompatActivity {
         loadData();
     }
 
+    // Phương thức tải dữ liệu từ database
     private void loadData() {
-        ls.clear();
+        ls.clear(); // Xóa dữ liệu cũ
+
+        // Query lấy danh sách thu nhập của user hiện tại
         String sql = "SELECT t.transaction_id, t.date, t.amount, c.name, t.description " +
                 "FROM Transactions t " +
                 "LEFT JOIN Categories c ON t.category_id = c.category_id " +
                 "WHERE t.user_id = ? AND c.type = 'TN'";
 
+        // Thực hiện query và xử lý kết quả
         Cursor cursor = db.rawQuery(sql, new String[] { String.valueOf(userId) });
 
         if (cursor.moveToFirst()) {
@@ -161,6 +171,7 @@ public class ThuNhap extends AppCompatActivity {
         adapter.notifyDataSetChanged();
     }
 
+    // Phương thức thêm thu nhập mới
     private void addData() {
         String danhmuc = editDanhMuc.getText().toString().trim();
         String mota = editMoTa.getText().toString().trim();
@@ -213,6 +224,7 @@ public class ThuNhap extends AppCompatActivity {
         }
     }
 
+    // Phương thức hiển thị DatePicker để chọn ngày
     private void showDatePickerDialog() {
         final Calendar c = Calendar.getInstance();
         int year = c.get(Calendar.YEAR);
@@ -239,6 +251,7 @@ public class ThuNhap extends AppCompatActivity {
         }
     }
 
+    // Phương thức cập nhật thông tin thu nhập
     private void updateData(int transactionId) {
         String danhmuc = editDanhMuc.getText().toString().trim();
         String mota = editMoTa.getText().toString().trim();
@@ -310,6 +323,7 @@ public class ThuNhap extends AppCompatActivity {
         }
     }
 
+    // Phương thức xóa thu nhập
     private void deleteData(int transactionId) {
         // Xóa dữ liệu trong cơ sở dữ liệu
         String deleteSql = "DELETE FROM Transactions WHERE transaction_id = ?";
