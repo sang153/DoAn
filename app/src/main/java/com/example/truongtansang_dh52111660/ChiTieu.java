@@ -21,6 +21,8 @@ import java.util.ArrayList;
 import android.app.DatePickerDialog;
 import android.widget.DatePicker;
 import java.util.Calendar;
+import android.widget.AdapterView;
+import android.app.AlertDialog;
 
 public class ChiTieu extends AppCompatActivity {
     private int userId;
@@ -97,6 +99,34 @@ public class ChiTieu extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 showDatePickerDialog();
+            }
+        });
+
+        lvChiTieu.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Transactions transaction = ls.get(position);
+                editDanhMuc.setText(transaction.getCategory());
+                editMoTa.setText(transaction.getDescription());
+                editGia.setText(String.valueOf(transaction.getAmount()));
+                editTextDate.setText(transaction.getDate());
+
+                btnAdd.setText("Sửa");
+                btnAdd.setOnClickListener(v -> updateData(transaction.getTransaction_id()));
+            }
+        });
+
+        lvChiTieu.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                Transactions transaction = ls.get(position);
+                new AlertDialog.Builder(ChiTieu.this)
+                        .setTitle("Xác nhận xóa")
+                        .setMessage("Bạn có chắc chắn muốn xóa mục này?")
+                        .setPositiveButton("Xóa", (dialog, which) -> deleteData(transaction.getTransaction_id()))
+                        .setNegativeButton("Hủy", null)
+                        .show();
+                return true;
             }
         });
 
@@ -200,5 +230,81 @@ public class ChiTieu extends AppCompatActivity {
                     }
                 }, year, month, day);
         datePickerDialog.show();
+    }
+
+    private void updateData(int transactionId) {
+        String danhmuc = editDanhMuc.getText().toString().trim();
+        String mota = editMoTa.getText().toString().trim();
+        String ngay = editTextDate.getText().toString().trim();
+
+        if (danhmuc.isEmpty() || mota.isEmpty() || ngay.isEmpty()) {
+            Toast.makeText(this, "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        try {
+            double sotien = Double.parseDouble(editGia.getText().toString());
+
+            // Lấy category_id hiện tại của giao dịch
+            String getCurrentCategory = "SELECT c.category_id, c.name FROM Transactions t " +
+                    "JOIN Categories c ON t.category_id = c.category_id " +
+                    "WHERE t.transaction_id = ? AND t.user_id = ?";
+            Cursor currentCursor = db.rawQuery(getCurrentCategory,
+                    new String[] { String.valueOf(transactionId), String.valueOf(userId) });
+
+            long categoryId;
+            if (currentCursor.moveToFirst()) {
+                categoryId = currentCursor.getLong(0);
+                String currentCategoryName = currentCursor.getString(1);
+
+                // Nếu tên danh mục thay đổi, cập nhật trong bảng Categories
+                if (!danhmuc.equals(currentCategoryName)) {
+                    String updateCategory = "UPDATE Categories SET name = ? " +
+                            "WHERE category_id = ? AND user_id = ? AND type = 'CT'";
+                    db.execSQL(updateCategory, new Object[] { danhmuc, categoryId, userId });
+                }
+            }
+            currentCursor.close();
+
+            // Cập nhật giao dịch
+            String updateTransaction = "UPDATE Transactions SET " +
+                    "amount = ?, " +
+                    "date = ?, " +
+                    "description = ? " +
+                    "WHERE transaction_id = ? AND user_id = ?";
+
+            db.execSQL(updateTransaction, new Object[] {
+                    sotien,
+                    ngay,
+                    mota,
+                    transactionId,
+                    userId
+            });
+
+            // Xóa nội dung các EditText
+            editDanhMuc.setText("");
+            editMoTa.setText("");
+            editGia.setText("");
+            editTextDate.setText("");
+
+            // Đổi lại text của button
+            btnAdd.setText("Thêm");
+            btnAdd.setOnClickListener(v -> addData());
+
+            Toast.makeText(this, "Cập nhật chi tiêu thành công", Toast.LENGTH_SHORT).show();
+
+            // Cập nhật lại ListView
+            loadData();
+
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Vui lòng nhập số tiền hợp lệ", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void deleteData(int transactionId) {
+        // Xóa dữ liệu trong cơ sở dữ liệu
+        String deleteSql = "DELETE FROM Transactions WHERE transaction_id = ?";
+        db.execSQL(deleteSql, new Object[] { transactionId });
+        loadData();
     }
 }
