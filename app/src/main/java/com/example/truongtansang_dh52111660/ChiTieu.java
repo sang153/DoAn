@@ -30,7 +30,7 @@ public class ChiTieu extends AppCompatActivity {
     private EditText editDanhMuc, editMoTa, editGia, editTextDate;
     private Button btnAdd, btnBack;
     private ListView lvChiTieu;
-    private TextView txvSTT, tvDate, tvTien, tvDanhMuc, tvMoTa;
+    private TextView tvSTT, tvDate, tvTien, tvDanhMuc, tvMoTa;
     private ArrayAdapter<Transactions> adapter;
     private ArrayList<Transactions> ls = new ArrayList<Transactions>();
 
@@ -56,7 +56,7 @@ public class ChiTieu extends AppCompatActivity {
                 LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
                 convertView = inflater.inflate(R.layout.data_item, null);
 
-                txvSTT = convertView.findViewById(R.id.tvSTT);
+                tvSTT = convertView.findViewById(R.id.tvSTT);
                 tvDate = convertView.findViewById(R.id.tvDate);
                 tvTien = convertView.findViewById(R.id.tvTien);
                 tvDanhMuc = convertView.findViewById(R.id.tvDanhMuc);
@@ -64,7 +64,7 @@ public class ChiTieu extends AppCompatActivity {
 
                 Transactions transaction = getItem(position);
                 if (transaction != null) {
-                    txvSTT.setText(String.valueOf(transaction.getTransaction_id()));
+                    tvSTT.setText(String.valueOf(position+1));
                     tvTien.setText(String.valueOf(transaction.getAmount()));
                     tvMoTa.setText(transaction.getDescription());
                     tvDanhMuc.setText(transaction.getCategory());
